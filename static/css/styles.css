@@ -1,0 +1,13 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+h1, h3 {
+    color: #333;
+}
+
+.progress-bar-complete {
+    background-color: #28a745 !important; /* Green color */
+}

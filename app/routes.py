@@ -1,5 +1,6 @@
 from flask import Blueprint, request, render_template, jsonify, send_from_directory, current_app
-from .video_processing import process_video_with_app_context, save_settings, load_settings, generate_preview_image
+from .video_processing import process_video_with_app_context, generate_preview_image
+from .utils import save_settings, load_settings
 from . import socketio
 import os
 import threading

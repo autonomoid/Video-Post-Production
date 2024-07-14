@@ -6,7 +6,7 @@ import base64
 import imageio
 import shutil
 from flask import Flask, current_app
-from .utils import hex_to_bgr, overlay_image, save_settings, load_settings
+from .utils import hex_to_bgr, overlay_image, load_settings
 from . import socketio
 
 def process_video_with_app_context(app, filepath):
@@ -97,7 +97,7 @@ def add_banners_and_logo(frame, frame_idx, settings, preview=False):
     font_scale = 1
     font_thickness = 2
     font = cv2.FONT_HERSHEY_SIMPLEX
-    text_size = cv2.getTextSize(settings.get('scrolling_text', 'Rootkit Racers'), font, font_scale, font_thickness)[0]
+    text_size = cv2.getTextSize(settings.get('scrolling_text', 'Codito Ergo Sum'), font, font_scale, font_thickness)[0]
 
     scroll_speed = 5
     if preview:
@@ -108,7 +108,7 @@ def add_banners_and_logo(frame, frame_idx, settings, preview=False):
     text_x = int(w - horizontal_shift)
     text_y = int(h + 1.75 * bottom_banner_height)
 
-    cv2.putText(frame, settings.get('scrolling_text', 'Rootkit Racers'), (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+    cv2.putText(frame, settings.get('scrolling_text', 'Codito Ergo Sum'), (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
 
     return frame
 

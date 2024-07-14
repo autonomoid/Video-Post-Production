@@ -37,7 +37,7 @@ def load_settings():
             'top_banner_color': '#006a4d',
             'bottom_banner_color': '#006a4d',
             'logo_path': 'logo.jpg',
-            'scrolling_text': 'Rootkit Racers'
+            'scrolling_text': 'Codito Ergo Sum'
         }
     return settings
 

@@ -1,10 +1,10 @@
-import { updateStatus, updateProgress, displayVideoPreview, enableImageView } from './ui.js';
+import { updateStatus, updateProgress, displayVideoPreview, updateVideoSource, enableDownloadButton } from './ui.js';
 
 /**
  * Initializes the socket connection and sets up event listeners for various socket events
  * @returns {Socket} - The initialized socket
  */
-export function setupSocket() {
+export function setupSocketHandlers() {
     const socket = io();
 
     // Event listener for successful connection
@@ -57,28 +57,4 @@ function handleProcessingDone(data) {
     updateVideoSource(videoUrl);
     enableDownloadButton(videoUrl);
     displayVideoPreview();
-}
-
-/**
- * Updates the video source and prepares the video for playback
- * @param {string} videoUrl - The URL of the processed video
- */
-function updateVideoSource(videoUrl) {
-    const videoElement = document.getElementById('videoPreview');
-    document.getElementById('videoSource').src = videoUrl;
-    videoElement.load();
-    setTimeout(() => {
-        videoElement.play();
-    }, 1000);
-}
-
-/**
- * Enables the download button with the given video URL
- * @param {string} videoUrl - The URL of the processed video
- */
-function enableDownloadButton(videoUrl) {
-    const downloadButton = document.getElementById('downloadButton');
-    downloadButton.href = videoUrl;
-    downloadButton.classList.remove('disabled');
-    downloadButton.removeAttribute('disabled');
 }

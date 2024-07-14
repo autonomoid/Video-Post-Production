@@ -1,5 +1,4 @@
-import { updatePreview } from './preview.js';
-import { updateStatus, enableImageView, displayVideoPreview, togglePreview } from './ui.js';
+import { updateStatus, enableImageView, togglePreview, updatePreview, enableForm, disableForm } from './ui.js';
 
 /**
  * Initializes event handlers for various elements
@@ -24,6 +23,9 @@ export function setupEventHandlers() {
     document.getElementById('logoX').addEventListener('input', updatePreview);
     document.getElementById('logoY').addEventListener('input', updatePreview);
     document.getElementById('scrollingText').addEventListener('input', updatePreview);
+
+    // Event listener for file input change event
+    document.getElementById('file').addEventListener('change', handleFileChange);
 }
 
 /**
@@ -102,4 +104,20 @@ function handleUploadResponse(data) {
  */
 function handleUploadError() {
     updateStatus('Error uploading file');
+}
+
+/**
+ * Handle the change event for the file input
+ */
+function handleFileChange() {
+    const fileInput = this;
+    const applyButton = document.getElementById('previewButton');
+    const settingsForm = document.getElementById('settingsForm');
+    const processButton = document.getElementById('processButton');
+
+    if (fileInput.value) {
+        enableForm(settingsForm, processButton, applyButton);  // Enable the form and buttons if a file is selected
+    } else {
+        disableForm(settingsForm, processButton, applyButton);  // Disable the form and buttons if no file is selected
+    }
 }

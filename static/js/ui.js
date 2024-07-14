@@ -112,3 +112,70 @@ export function togglePreview() {
 function isImagePreviewVisible() {
     return document.getElementById('imagePreviewContainer').style.display !== 'none';
 }
+
+/**
+ * Updates the video source and prepares the video for playback
+ * @param {string} videoUrl - The URL of the processed video
+ */
+export function updateVideoSource(videoUrl) {
+    const videoElement = document.getElementById('videoPreview');
+    document.getElementById('videoSource').src = videoUrl;
+    videoElement.load();
+    setTimeout(() => {
+        videoElement.play();
+    }, 1000);
+}
+
+/**
+ * Enables the download button with the given video URL
+ * @param {string} videoUrl - The URL of the processed video
+ */
+export function enableDownloadButton(videoUrl) {
+    const downloadButton = document.getElementById('downloadButton');
+    downloadButton.href = videoUrl;
+    downloadButton.classList.remove('disabled');
+    downloadButton.removeAttribute('disabled');
+}
+
+/**
+ * Updates the preview image based on the current form data
+ */
+export function updatePreview() {
+    const formData = new FormData(document.getElementById('settingsForm'));
+    fetch('/preview', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('previewImage').src = `data:image/jpeg;base64,${data.image}`;
+        updateStatus('Preview updated');
+    })
+    .catch(() => {
+        updateStatus('Error generating preview');
+    });
+}
+
+/**
+ * Enable the form and related buttons
+ * @param {HTMLElement} settingsForm - The settings form element
+ * @param {HTMLElement} processButton - The process button element
+ * @param {HTMLElement} applyButton - The apply button element
+ */
+export function enableForm(settingsForm, processButton, applyButton) {
+    settingsForm.removeAttribute('inert');
+    processButton.removeAttribute('disabled');
+    applyButton.removeAttribute('disabled');  // Enable the Apply button
+}
+
+/**
+ * Disable the form and related buttons
+ * @param {HTMLElement} settingsForm - The settings form element
+ * @param {HTMLElement} processButton - The process button element
+ * @param {HTMLElement} applyButton - The apply button element
+ */
+export function disableForm(settingsForm, processButton, applyButton) {
+    settingsForm.setAttribute('inert', 'true');
+    processButton.setAttribute('disabled', 'true');
+    applyButton.setAttribute('disabled', 'true');  // Disable the Apply button
+}

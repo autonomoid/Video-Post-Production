@@ -2,74 +2,12 @@ from moviepy.editor import VideoFileClip
 import cv2
 import numpy as np
 import os
-import json
 import base64
 import imageio
 import shutil
-from flask import current_app
-from .utils import hex_to_bgr, add_banners_and_logo
+from flask import Flask, current_app
+from .utils import hex_to_bgr, overlay_image, save_settings, load_settings
 from . import socketio
-from flask import Flask
-
-def save_settings(form, files):
-    settings = {
-        'logo_x': form.get('logoX', default=10, type=int),
-        'logo_y': form.get('logoY', default=10, type=int),
-        'top_banner_color': form.get('topBannerColor', default='#006a4d'),
-        'bottom_banner_color': form.get('bottomBannerColor', default='#006a4d'),
-        'scrolling_text': form.get('scrollingText', default='Codito Ergo Sum'),
-    }
-    logo_file = files.get('logoFile')
-    if logo_file:
-        logo_filepath = os.path.join(current_app.config['SETTINGS_FOLDER'], 'logo.jpg')
-        logo_file.save(logo_filepath)
-        settings['logo_path'] = logo_filepath
-    settings_path = os.path.join(current_app.config['SETTINGS_FOLDER'], 'settings.json')
-    with open(settings_path, 'w') as f:
-        json.dump(settings, f)
-
-def load_settings():
-    settings_path = os.path.join(current_app.config['SETTINGS_FOLDER'], 'settings.json')
-    if os.path.exists(settings_path):
-        with open(settings_path, 'r') as f:
-            settings = json.load(f)
-    else:
-        settings = {
-            'logo_x': 10,
-            'logo_y': 10,
-            'top_banner_color': '#006a4d',
-            'bottom_banner_color': '#006a4d',
-            'logo_path': 'logo.jpg',
-            'scrolling_text': 'Rootkit Racers'
-        }
-    return settings
-
-def generate_preview_image(settings):
-    files = os.listdir(current_app.config['UPLOAD_FOLDER'])
-    if not files:
-        return None
-    
-    # Select the first video file for preview
-    first_video = None
-    for file in files:
-        if file.endswith(('.mp4', '.avi', '.mov')):
-            first_video = os.path.join(current_app.config['UPLOAD_FOLDER'], file)
-            break
-    
-    if first_video is None:
-        return None
-    
-    # Extract the first frame from the video
-    clip = VideoFileClip(first_video)
-    frame = clip.get_frame(0)
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-    frame = add_banners_and_logo(frame, 0, settings, preview=True)
-    
-    _, buffer = cv2.imencode('.jpg', frame)
-    preview_image = base64.b64encode(buffer).decode('utf-8')
-    return preview_image
-
-
 
 def process_video_with_app_context(app, filepath):
     with app.app_context():
@@ -114,3 +52,87 @@ def process_video(filepath):
         socketio.emit('processing_done', {'filename': 'output_video.mp4'})
     except Exception as e:
         socketio.emit('status', {'message': f'Error during processing: {str(e)}'})
+
+def add_banners_and_logo(frame, frame_idx, settings, preview=False):
+    """
+    Add top and bottom banners and a logo to a video frame.
+    
+    Args:
+        frame (numpy.ndarray): The video frame to modify.
+        frame_idx (int): The index of the frame in the video.
+        settings (dict): A dictionary of settings including banner colors, logo position, etc.
+        preview (bool): If True, generate a preview of the frame.
+        
+    Returns:
+        numpy.ndarray: The modified video frame with banners and logo added.
+    """
+    top_banner_height = 50
+    bottom_banner_height = 50
+    top_banner_color = hex_to_bgr(settings['top_banner_color'])
+    bottom_banner_color = hex_to_bgr(settings['bottom_banner_color'])
+    logo_path = settings.get('logo_path', 'logo.jpg')
+
+    h, w, _ = frame.shape
+    top_banner = np.zeros((top_banner_height, w, 3), dtype=np.uint8)
+    top_banner[:] = top_banner_color
+    frame = np.vstack((top_banner, frame))
+
+    bottom_banner = np.zeros((bottom_banner_height, w, 3), dtype=np.uint8)
+    bottom_banner[:] = bottom_banner_color
+    frame = np.vstack((frame, bottom_banner))
+
+
+    # Add logo
+    logo_path = settings.get('logo_path')
+    if logo_path and os.path.exists(logo_path):
+        logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
+        if logo is not None:
+            logo_x = settings['logo_x']
+            logo_y = settings['logo_y']
+            logo_width = settings['logo_width']
+            logo_height = settings['logo_height']
+            resized_logo = cv2.resize(logo, (logo_width, logo_height))
+            overlay_image(frame, resized_logo, logo_x, logo_y)
+
+    font_scale = 1
+    font_thickness = 2
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text_size = cv2.getTextSize(settings.get('scrolling_text', 'Rootkit Racers'), font, font_scale, font_thickness)[0]
+
+    scroll_speed = 5
+    if preview:
+        horizontal_shift = (w // 2) + (text_size[0] // 2)
+    else:
+        horizontal_shift = (scroll_speed * frame_idx) % (w + text_size[0])
+
+    text_x = int(w - horizontal_shift)
+    text_y = int(h + 1.75 * bottom_banner_height)
+
+    cv2.putText(frame, settings.get('scrolling_text', 'Rootkit Racers'), (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
+
+    return frame
+
+def generate_preview_image(settings):
+    files = os.listdir(current_app.config['UPLOAD_FOLDER'])
+    if not files:
+        return None
+    
+    # Select the first video file for preview
+    first_video = None
+    for file in files:
+        if file.endswith(('.mp4', '.avi', '.mov')):
+            first_video = os.path.join(current_app.config['UPLOAD_FOLDER'], file)
+            break
+    
+    if first_video is None:
+        return None
+    
+    # Extract the first frame from the video
+    clip = VideoFileClip(first_video)
+    frame = clip.get_frame(0)
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    frame = add_banners_and_logo(frame, 0, settings, preview=True)
+    
+    _, buffer = cv2.imencode('.jpg', frame)
+    preview_image = base64.b64encode(buffer).decode('utf-8')
+    return preview_image

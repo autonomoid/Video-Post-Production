@@ -1,5 +1,45 @@
 import cv2
 import numpy as np
+import os
+import json
+from flask import current_app
+
+def save_settings(form, files):
+    settings = {
+        'logo_x': form.get('logoX', default=10, type=int),
+        'logo_y': form.get('logoY', default=10, type=int),
+        'logo_width': form.get('logoW', default=100, type=int),
+        'logo_height': form.get('logoH', default=100, type=int),
+        'top_banner_color': form.get('topBannerColor', default='#006a4d'),
+        'bottom_banner_color': form.get('bottomBannerColor', default='#006a4d'),
+        'scrolling_text': form.get('scrollingText', default='Codito Ergo Sum'),
+    }
+    logo_file = files.get('logoFile')
+    if logo_file:
+        logo_filepath = os.path.join(current_app.config['SETTINGS_FOLDER'], 'logo.jpg')
+        logo_file.save(logo_filepath)
+        settings['logo_path'] = logo_filepath
+    settings_path = os.path.join(current_app.config['SETTINGS_FOLDER'], 'settings.json')
+    with open(settings_path, 'w') as f:
+        json.dump(settings, f)
+
+def load_settings():
+    settings_path = os.path.join(current_app.config['SETTINGS_FOLDER'], 'settings.json')
+    if os.path.exists(settings_path):
+        with open(settings_path, 'r') as f:
+            settings = json.load(f)
+    else:
+        settings = {
+            'logo_x': 10,
+            'logo_y': 10,
+            'logo_width': 100,
+            'logo_height': 100,
+            'top_banner_color': '#006a4d',
+            'bottom_banner_color': '#006a4d',
+            'logo_path': 'logo.jpg',
+            'scrolling_text': 'Rootkit Racers'
+        }
+    return settings
 
 def hex_to_bgr(hex_color):
     """
@@ -17,67 +57,9 @@ def hex_to_bgr(hex_color):
     b = int(hex_color[4:6], 16)
     return (b, g, r)
 
-def add_banners_and_logo(frame, frame_idx, settings, preview=False):
-    """
-    Add top and bottom banners and a logo to a video frame.
-    
-    Args:
-        frame (numpy.ndarray): The video frame to modify.
-        frame_idx (int): The index of the frame in the video.
-        settings (dict): A dictionary of settings including banner colors, logo position, etc.
-        preview (bool): If True, generate a preview of the frame.
-        
-    Returns:
-        numpy.ndarray: The modified video frame with banners and logo added.
-    """
-    top_banner_height = 50
-    bottom_banner_height = 50
-    top_banner_color = hex_to_bgr(settings['top_banner_color'])
-    bottom_banner_color = hex_to_bgr(settings['bottom_banner_color'])
-    logo_path = settings.get('logo_path', 'logo.jpg')
-    logo_size = (50, 50)
-
-    h, w, _ = frame.shape
-    top_banner = np.zeros((top_banner_height, w, 3), dtype=np.uint8)
-    top_banner[:] = top_banner_color
-    frame = np.vstack((top_banner, frame))
-
-    bottom_banner = np.zeros((bottom_banner_height, w, 3), dtype=np.uint8)
-    bottom_banner[:] = bottom_banner_color
-    frame = np.vstack((frame, bottom_banner))
-
-    if logo_path:
-        logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
-        logo = cv2.resize(logo, logo_size)
-        logo_h, logo_w, logo_c = logo.shape
-
-        logo_x = settings.get('logo_x', 10)
-        logo_y = settings.get('logo_y', 10)
-
-        if logo_c == 4:
-            alpha_logo = logo[:, :, 3] / 255.0
-            alpha_frame = 1.0 - alpha_logo
-
-            for c in range(0, 3):
-                frame[logo_y:logo_y+logo_h, logo_x:logo_x+logo_w, c] = (alpha_logo * logo[:, :, c] +
-                                                    alpha_frame * frame[logo_y:logo_y+logo_h, logo_x:logo_x+logo_w, c])
-        else:
-            frame[logo_y:logo_y+logo_h, logo_x:logo_x+logo_w] = logo
-
-    font_scale = 1
-    font_thickness = 2
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    text_size = cv2.getTextSize(settings.get('scrolling_text', 'Rootkit Racers'), font, font_scale, font_thickness)[0]
-
-    scroll_speed = 5
-    if preview:
-        horizontal_shift = (w // 2) + (text_size[0] // 2)
-    else:
-        horizontal_shift = (scroll_speed * frame_idx) % (w + text_size[0])
-
-    text_x = int(w - horizontal_shift)
-    text_y = int(h + 1.75 * bottom_banner_height)
-
-    cv2.putText(frame, settings.get('scrolling_text', 'Rootkit Racers'), (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
-
-    return frame
+def overlay_image(background, overlay, x, y):
+    """ Overlay an image on top of another image. Supports transparency. """
+    if overlay is None or overlay.size == 0:
+        return
+    overlay_h, overlay_w = overlay.shape[0], overlay.shape[1]
+    background[y:y+overlay_h, x:x+overlay_w] = overlay

@@ -3,12 +3,16 @@ import { enableImageView, updateStatus } from './ui.js';
 
 export function setupUploadForm() {
     document.getElementById('file').addEventListener('change', function() {
-        if (this.value) {
+        const fileInput = this;
+        const applyButton = document.getElementById('previewButton');
+        if (fileInput.value) {
             document.getElementById('settingsForm').removeAttribute('inert');
             document.getElementById('processButton').removeAttribute('disabled');
+            applyButton.removeAttribute('disabled');  // Enable the Apply button
         } else {
             document.getElementById('settingsForm').setAttribute('inert', 'true');
             document.getElementById('processButton').setAttribute('disabled', 'true');
+            applyButton.setAttribute('disabled', 'true');  // Disable the Apply button
         }
     });
 

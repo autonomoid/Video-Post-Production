@@ -94,7 +94,7 @@ def save_settings(form, files):
         'logo_y': form.get('logoY', default=10, type=int),
         'top_banner_color': form.get('topBannerColor', default='#006a4d'),
         'bottom_banner_color': form.get('bottomBannerColor', default='#006a4d'),
-        'scrolling_text': form.get('scrollingText', default='Rootkit Racers'),
+        'scrolling_text': form.get('scrollingText', default='Codito Ergo Sum'),
     }
     logo_file = files.get('logoFile')
     if logo_file:
